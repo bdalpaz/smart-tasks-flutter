@@ -11,8 +11,11 @@ class TarefaProvider extends ChangeNotifier {
   Prioridade? filtroPrioridade;
   bool? filtroConcluida;
 
+<<<<<<< HEAD
   int get pendentes => _tarefas.where((t) => !t.concluida).length;
 
+=======
+>>>>>>> d9183b8f2d1c0f1b09677e7003593f461ae60433
   List<Tarefa> get tarefas {
     final termo = busca.toLowerCase();
     final lista = _tarefas.where((t) {
@@ -25,6 +28,7 @@ class TarefaProvider extends ChangeNotifier {
       return true;
     }).toList();
 
+<<<<<<< HEAD
     // Ordenação inteligente: pendentes > atrasadas > prioridade > prazo mais próximo
     lista.sort((a, b) {
       if (a.concluida != b.concluida) return a.concluida ? 1 : -1;
@@ -35,6 +39,12 @@ class TarefaProvider extends ChangeNotifier {
       if (a.prazo == null) return 1;
       if (b.prazo == null) return -1;
       return a.prazo!.compareTo(b.prazo!);
+=======
+    // Pendentes primeiro, depois por prioridade (alta → baixa)
+    lista.sort((a, b) {
+      if (a.concluida != b.concluida) return a.concluida ? 1 : -1;
+      return a.prioridade.index.compareTo(b.prioridade.index);
+>>>>>>> d9183b8f2d1c0f1b09677e7003593f461ae60433
     });
     return lista;
   }
@@ -74,6 +84,7 @@ class TarefaProvider extends ChangeNotifier {
     busca = valor;
     notifyListeners();
   }
+<<<<<<< HEAD
 
   void setFiltroCategoria(Categoria? c) {
     filtroCategoria = c;
@@ -89,4 +100,6 @@ class TarefaProvider extends ChangeNotifier {
     filtroConcluida = c;
     notifyListeners();
   }
+=======
+>>>>>>> d9183b8f2d1c0f1b09677e7003593f461ae60433
 }
