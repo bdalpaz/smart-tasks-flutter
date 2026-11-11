@@ -115,6 +115,11 @@ arquivo.
 | [provider](https://pub.dev/packages/provider) `^6.1.5` | Gerenciamento de estado (`ChangeNotifier`) |
 | [shared_preferences](https://pub.dev/packages/shared_preferences) `^2.5.6` | Persistência local em JSON |
 
+## Dificuldades enfrentadas
+
+O registro dos problemas de configuração e build encontrados durante o desenvolvimento, com
+causa e solução de cada um, está em [`docs/dificuldades.md`](docs/dificuldades.md).
+
 ## Integrantes
 
 <!-- TODO: substituir pelos nomes do grupo -->
