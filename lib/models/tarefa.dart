@@ -1,7 +1,6 @@
 enum Categoria { trabalho, estudo, pessoal, outros }
 enum Prioridade { alta, media, baixa }
 
-<<<<<<< HEAD
 extension CategoriaLabel on Categoria {
   String get label => switch (this) {
         Categoria.trabalho => 'Trabalho',
@@ -22,8 +21,6 @@ extension PrioridadeLabel on Prioridade {
 String formatarData(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-=======
->>>>>>> d9183b8f2d1c0f1b09677e7003593f461ae60433
 class Tarefa {
   final String id;
   String titulo;
@@ -45,7 +42,6 @@ class Tarefa {
     this.prazo,
   }) : criadaEm = criadaEm ?? DateTime.now();
 
-<<<<<<< HEAD
   bool get atrasada {
     if (concluida || prazo == null) return false;
     final agora = DateTime.now();
@@ -53,8 +49,6 @@ class Tarefa {
     return prazo!.isBefore(hoje);
   }
 
-=======
->>>>>>> d9183b8f2d1c0f1b09677e7003593f461ae60433
   Map<String, dynamic> toJson() => {
         'id': id,
         'titulo': titulo,
