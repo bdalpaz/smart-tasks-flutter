@@ -184,9 +184,7 @@ causa e solução de cada um, está em [`docs/dificuldades.md`](docs/dificuldade
 
 ## Seminário
 
-Os slides da apresentação estão em
-[`docs/Smart-Tasks-Seminario.pptx`](docs/Smart-Tasks-Seminario.pptx), divididos nos quatro
-blocos pedidos pelo trabalho:
+A apresentação está dividida nos quatro blocos pedidos pelo trabalho:
 
 | Bloco | Conteúdo | Apresenta |
 |---|---|---|
