@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mesma cor-semente de lib/theme.dart, para que ícone, splash e app
+         tenham a mesma identidade. -->
+    <color name="ic_launcher_background">#00695C</color>
+</resources>
