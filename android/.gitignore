@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Cache do compilador Kotlin, gerado pelo build do APK
+.kotlin/
