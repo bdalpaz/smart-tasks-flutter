@@ -142,23 +142,30 @@ class ListaTarefasScreen extends StatelessWidget {
         // toque com os controles internos — no cartão, com o checkbox.
         tappable: false,
         openBuilder: (_, _) => const FormTarefaScreen(),
-        closedBuilder: (_, abrir) => InkWell(
-          onTap: abrir,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, color: cores.onPrimaryContainer),
-                const SizedBox(width: 8),
-                Text(
-                  'Nova tarefa',
-                  style: TextStyle(
-                    color: cores.onPrimaryContainer,
-                    fontWeight: FontWeight.w600,
+        // Material transparente: durante a transição o OpenContainer reconstrói
+        // este conteúdo fora do lugar original, e sem um Material próprio o
+        // InkWell não acha ancestral — erro vermelho por um frame ao abrir.
+        closedBuilder: (_, abrir) => Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: abrir,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add, color: cores.onPrimaryContainer),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Nova tarefa',
+                    style: TextStyle(
+                      color: cores.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -470,9 +477,10 @@ class _ItemTarefa extends StatelessWidget {
             borderRadius: BorderRadius.circular(_raioCartao),
           ),
           openBuilder: (_, _) => FormTarefaScreen(tarefa: tarefa),
-          closedBuilder: (_, abrir) => _ConteudoItem(
-            tarefa: tarefa,
-            aoTocar: abrir,
+          // Material transparente pelo mesmo motivo do botão "Nova tarefa".
+          closedBuilder: (_, abrir) => Material(
+            type: MaterialType.transparency,
+            child: _ConteudoItem(tarefa: tarefa, aoTocar: abrir),
           ),
         ),
       ),
