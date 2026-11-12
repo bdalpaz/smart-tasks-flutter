@@ -57,6 +57,8 @@ pendentes por prioridade e prazo; a concluída fica por último, riscada.
 
 ### Cadastro e edição
 
+Cada categoria tem a própria cor, e o chip "Nova" cria uma categoria sem sair do formulário:
+
 ![Formulário de tarefa](docs/screenshots/02-formulario.png)
 
 ### Busca e filtros
@@ -64,6 +66,20 @@ pendentes por prioridade e prazo; a concluída fica por último, riscada.
 Filtro de categoria "Estudo" aplicado:
 
 ![Filtros](docs/screenshots/03-filtros.png)
+
+### Categorias
+
+As quatro categorias de fábrica são só o ponto de partida — dá para criar, renomear e
+recolorir. O contador de uso explica por que uma categoria com tarefas não pode ser excluída:
+
+![Categorias](docs/screenshots/04-categorias.png)
+
+### Layout responsivo
+
+O mesmo código, numa janela de desktop maximizada: o número de colunas vem da largura
+disponível, em vez de uma faixa estreita de conteúdo no meio da tela.
+
+![Layout em três colunas](docs/screenshots/05-responsivo.png)
 
 ## Como rodar o projeto
 
