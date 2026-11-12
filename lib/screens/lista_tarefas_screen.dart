@@ -1,8 +1,64 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../layout_responsivo.dart';
 import '../models/tarefa.dart';
 import '../providers/tarefa_provider.dart';
+import '../theme.dart';
+import 'categorias_screen.dart';
 import 'form_tarefa_screen.dart';
+
+const _duracaoTransicao = Duration(milliseconds: 420);
+const _raioCartao = 14.0;
+
+class _Limitado extends StatelessWidget {
+  final double largura;
+  final Widget child;
+  const _Limitado({required this.largura, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: largura),
+          child: child,
+        ),
+      );
+}
+
+/// Contador de pendentes como etiqueta separada do título.
+///
+/// Antes fazia parte do texto do título, que então truncava em
+/// "Minhas Ta..." e escondia justamente o número. Mostra só o número: a
+/// caixa de título da AppBar pode ficar com pouca largura (as `actions`
+/// comem espaço), e um texto por extenso aqui estourava a linha.
+class _Contador extends StatelessWidget {
+  final int quantidade;
+  const _Contador({required this.quantidade});
+
+  @override
+  Widget build(BuildContext context) {
+    final cores = Theme.of(context).colorScheme;
+    return Tooltip(
+      message:
+          '$quantidade tarefa${quantidade == 1 ? '' : 's'} pendente${quantidade == 1 ? '' : 's'}',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: cores.onPrimaryContainer.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          '$quantidade',
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: cores.onPrimaryContainer,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ),
+    );
+  }
+}
 
 class ListaTarefasScreen extends StatelessWidget {
   const ListaTarefasScreen({super.key});
@@ -10,47 +66,226 @@ class ListaTarefasScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TarefaProvider>();
+    final cores = Theme.of(context).colorScheme;
     final tarefas = provider.tarefas;
+
+    final larguraDisponivel = MediaQuery.sizeOf(context).width;
+    final colunas = colunasPara(larguraDisponivel);
+    final larguraDaCaixa = larguraDoConteudo(larguraDisponivel, colunas);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Minhas Tarefas (${provider.pendentes} pendentes)'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Flexible(
+              child: Text('Minhas Tarefas', overflow: TextOverflow.ellipsis),
+            ),
+            if (provider.pendentes > 0) ...[
+              const SizedBox(width: 10),
+              // Flexible também no contador: se a caixa de título apertar, ele
+              // encolhe em vez de empurrar a linha para fora.
+              Flexible(child: _Contador(quantidade: provider.pendentes)),
+            ],
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.label_outline),
+            tooltip: 'Categorias',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CategoriasScreen()),
+            ),
+          ),
+        ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              onChanged: provider.setBusca,
-              decoration: const InputDecoration(
-                hintText: 'Buscar tarefas...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+          // A altura acompanha a escala de texto do sistema: com fonte grande
+          // por acessibilidade, uma altura fixa de 62 estouraria o campo.
+          preferredSize: Size.fromHeight(
+            62 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
+          ),
+          child: _Limitado(
+            largura: larguraDaCaixa,
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: _CampoBusca(),
             ),
           ),
         ),
       ),
-      body: Column(
-        children: [
-          const _BarraFiltros(),
-          Expanded(
-            child: tarefas.isEmpty
-                ? const Center(child: Text('Nenhuma tarefa encontrada'))
-                : ListView.builder(
-                    itemCount: tarefas.length,
-                    itemBuilder: (context, i) => _ItemTarefa(tarefa: tarefas[i]),
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const FormTarefaScreen()),
+      body: _Limitado(
+        largura: larguraDaCaixa,
+        child: Column(
+          children: [
+            const _BarraFiltros(),
+            Expanded(
+              child: switch ((provider.carregando, tarefas.isEmpty)) {
+                (true, _) => const Center(child: CircularProgressIndicator()),
+                (false, true) => _EstadoVazio(filtrando: provider.filtrando),
+                (false, false) =>
+                  _Grade(tarefas: tarefas, colunas: colunas),
+              },
+            ),
+          ],
         ),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova tarefa'),
+      ),
+      floatingActionButton: OpenContainer(
+        transitionType: ContainerTransitionType.fadeThrough,
+        transitionDuration: _duracaoTransicao,
+        closedElevation: 6,
+        closedShape: const StadiumBorder(),
+        closedColor: cores.primaryContainer,
+        openColor: cores.surface,
+        // O toque é tratado pelo InkWell abaixo. Com o padrão (true), o
+        // OpenContainer põe o próprio detector de gestos por cima e disputa o
+        // toque com os controles internos — no cartão, com o checkbox.
+        tappable: false,
+        openBuilder: (_, _) => const FormTarefaScreen(),
+        closedBuilder: (_, abrir) => InkWell(
+          onTap: abrir,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add, color: cores.onPrimaryContainer),
+                const SizedBox(width: 8),
+                Text(
+                  'Nova tarefa',
+                  style: TextStyle(
+                    color: cores.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Campo de busca com controller próprio.
+///
+/// Precisa ser Stateful: sem um controller, limpar a busca pelo provider (o
+/// botão "Limpar filtros") zerava o filtro mas deixava o texto antigo visível
+/// na tela — e não havia como oferecer um botão de limpar no próprio campo.
+class _CampoBusca extends StatefulWidget {
+  const _CampoBusca();
+
+  @override
+  State<_CampoBusca> createState() => _CampoBuscaState();
+}
+
+class _CampoBuscaState extends State<_CampoBusca> {
+  final _controller = TextEditingController();
+  late final TarefaProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = context.read<TarefaProvider>();
+    _provider.addListener(_sincronizar);
+  }
+
+  /// Reflete no campo qualquer mudança de busca vinda de fora. Roda fora do
+  /// build de propósito: mexer no controller durante o build dispara
+  /// "setState during build".
+  void _sincronizar() {
+    final busca = _provider.busca;
+    if (_controller.text == busca) return;
+    _controller.value = TextEditingValue(
+      text: busca,
+      selection: TextSelection.collapsed(offset: busca.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    _provider.removeListener(_sincronizar);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cores = Theme.of(context).colorScheme;
+    final temTexto = context.watch<TarefaProvider>().busca.isNotEmpty;
+
+    return TextField(
+      controller: _controller,
+      onChanged: _provider.setBusca,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Buscar tarefas...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: temTexto
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Limpar busca',
+                onPressed: () => _provider.setBusca(''),
+              )
+            : null,
+        filled: true,
+        fillColor: cores.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        isDense: true,
+      ),
+    );
+  }
+}
+
+class _EstadoVazio extends StatelessWidget {
+  /// Diferencia "ainda não há tarefas" de "os filtros não acharam nada" — são
+  /// situações distintas e pedem saídas distintas.
+  final bool filtrando;
+  const _EstadoVazio({required this.filtrando});
+
+  @override
+  Widget build(BuildContext context) {
+    final cores = Theme.of(context).colorScheme;
+    final textos = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              filtrando ? Icons.search_off_rounded : Icons.task_alt_rounded,
+              size: 76,
+              color: cores.outlineVariant,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              filtrando ? 'Nada encontrado' : 'Tudo em dia por aqui',
+              style: textos.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              filtrando
+                  ? 'Tente outra busca ou limpe os filtros.'
+                  : 'Toque em "Nova tarefa" para criar a primeira.',
+              textAlign: TextAlign.center,
+              style: textos.bodyMedium?.copyWith(color: cores.onSurfaceVariant),
+            ),
+            if (filtrando) ...[
+              const SizedBox(height: 20),
+              TextButton.icon(
+                onPressed: context.read<TarefaProvider>().limparFiltros,
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text('Limpar filtros'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -64,20 +299,30 @@ class _BarraFiltros extends StatelessWidget {
     final provider = context.watch<TarefaProvider>();
 
     return SizedBox(
-      height: 48,
+      height: 50,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          for (final c in Categoria.values)
+          for (final c in provider.categorias)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(c.label),
-                selected: provider.filtroCategoria == c,
-                onSelected: (sel) =>
-                    provider.setFiltroCategoria(sel ? c : null),
-              ),
+              child: Builder(builder: (context) {
+                final cor = corLegivel(context, Color(c.cor));
+                final marcado = provider.filtroCategoriaId == c.id;
+                return FilterChip(
+                  label: Text(c.nome),
+                  avatar: marcado
+                      ? null
+                      : CircleAvatar(backgroundColor: cor, radius: 6),
+                  selected: marcado,
+                  selectedColor: cor.withValues(alpha: 0.22),
+                  checkmarkColor: cor,
+                  side: marcado ? BorderSide(color: cor) : null,
+                  onSelected: (sel) =>
+                      provider.setFiltroCategoria(sel ? c.id : null),
+                );
+              }),
             ),
           const _SeparadorFiltros(),
           for (final p in Prioridade.values)
@@ -116,99 +361,246 @@ class _SeparadorFiltros extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 11),
         child: VerticalDivider(width: 1),
       );
+}
+
+/// As tarefas em uma ou mais colunas, conforme a largura disponível.
+///
+/// É um ListView de linhas, e não um GridView: o GridView pediria altura fixa
+/// por célula, mas o título de uma tarefa pode ocupar uma ou duas linhas. Desta
+/// forma a virtualização do ListView é preservada e o IntrinsicHeight iguala a
+/// altura dos cartões que ficam lado a lado.
+class _Grade extends StatelessWidget {
+  final List<Tarefa> tarefas;
+  final int colunas;
+
+  const _Grade({required this.tarefas, required this.colunas});
+
+  static const _recheio = EdgeInsets.only(top: 4, bottom: 88);
+
+  @override
+  Widget build(BuildContext context) {
+    // Caminho do celular: uma coluna, sem o custo do IntrinsicHeight extra.
+    if (colunas == 1) {
+      return ListView.builder(
+        padding: _recheio,
+        itemCount: tarefas.length,
+        itemBuilder: (context, i) => _ItemTarefa(tarefa: tarefas[i]),
+      );
+    }
+
+    final linhas = (tarefas.length + colunas - 1) ~/ colunas;
+
+    return ListView.builder(
+      padding: _recheio,
+      itemCount: linhas,
+      itemBuilder: (context, linha) {
+        final inicio = linha * colunas;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < colunas; i++)
+                Expanded(
+                  // A última linha pode vir incompleta; o espaço vazio mantém
+                  // as colunas alinhadas em vez de esticar o cartão sozinho.
+                  child: inicio + i < tarefas.length
+                      ? _ItemTarefa(tarefa: tarefas[inicio + i])
+                      : const SizedBox.shrink(),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _ItemTarefa extends StatelessWidget {
   final Tarefa tarefa;
   const _ItemTarefa({required this.tarefa});
 
-  // Alta → vermelho, média → laranja, baixa → verde.
-  Color _corPrioridade(BuildContext context) => switch (tarefa.prioridade) {
-        Prioridade.alta => Colors.red.shade400,
-        Prioridade.media => Colors.orange.shade400,
-        Prioridade.baixa => Colors.green.shade400,
-      };
-
   @override
   Widget build(BuildContext context) {
     final provider = context.read<TarefaProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final cores = Theme.of(context).colorScheme;
 
-    final partes = <String>[
-      tarefa.categoria.label,
-      tarefa.prioridade.label,
-      if (tarefa.prazo != null) formatarData(tarefa.prazo!),
-    ];
-
-    return Dismissible(
-      key: ValueKey(tarefa.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: Theme.of(context).colorScheme.errorContainer,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline),
-      ),
-      onDismissed: (_) {
-        provider.excluir(tarefa.id);
-        messenger.showSnackBar(
-          SnackBar(content: Text('"${tarefa.titulo}" excluída')),
-        );
-      },
-      child: ListTile(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FormTarefaScreen(tarefa: tarefa),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Dismissible(
+        key: ValueKey(tarefa.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          decoration: BoxDecoration(
+            color: cores.errorContainer,
+            borderRadius: BorderRadius.circular(_raioCartao),
           ),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 22),
+          child: Icon(Icons.delete_outline, color: cores.onErrorContainer),
         ),
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 36,
-              decoration: BoxDecoration(
-                color: _corPrioridade(context),
-                borderRadius: BorderRadius.circular(3),
+        onDismissed: (_) {
+          provider.excluir(tarefa.id);
+          // Deslizar é fácil de disparar sem querer, então a exclusão precisa de
+          // volta. A tarefa volta com o mesmo id e a ordenação a recoloca no lugar.
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('"${tarefa.titulo}" excluída'),
+              action: SnackBarAction(
+                label: 'Desfazer',
+                onPressed: () => provider.adicionar(tarefa),
               ),
             ),
+          );
+        },
+        // O próprio cartão vira a tela de edição: o OpenContainer é o cartão,
+        // em vez de embrulhar um Card, para não empilhar duas superfícies.
+        child: OpenContainer(
+          transitionType: ContainerTransitionType.fadeThrough,
+          transitionDuration: _duracaoTransicao,
+          closedElevation: 0,
+          closedColor: cores.surfaceContainerHighest.withValues(alpha: 0.45),
+          openColor: cores.surface,
+          tappable: false,
+          closedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_raioCartao),
+          ),
+          openBuilder: (_, _) => FormTarefaScreen(tarefa: tarefa),
+          closedBuilder: (_, abrir) => _ConteudoItem(
+            tarefa: tarefa,
+            aoTocar: abrir,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConteudoItem extends StatelessWidget {
+  final Tarefa tarefa;
+  final VoidCallback aoTocar;
+
+  const _ConteudoItem({required this.tarefa, required this.aoTocar});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<TarefaProvider>();
+    final cores = Theme.of(context).colorScheme;
+    final textos = Theme.of(context).textTheme;
+
+    final corCategoria =
+        corLegivel(context, Color(provider.corCategoria(tarefa.categoriaId)));
+    final corPrioridade =
+        corDaPrioridade(context, tarefa.prioridade.index);
+
+    return InkWell(
+      onTap: aoTocar,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Faixa de prioridade colada na borda do cartão.
+            Container(width: 5, color: corPrioridade),
             Checkbox(
               value: tarefa.concluida,
               onChanged: (_) => provider.alternarConcluida(tarefa),
             ),
-          ],
-        ),
-        title: Text(
-          tarefa.titulo,
-          style: TextStyle(
-            decoration: tarefa.concluida ? TextDecoration.lineThrough : null,
-          ),
-        ),
-        subtitle: Row(
-          children: [
-            if (tarefa.atrasada) ...[
-              Icon(
-                Icons.warning_amber_rounded,
-                size: 16,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(width: 4),
-            ],
             Expanded(
-              child: Text(
-                partes.join(' • '),
-                overflow: TextOverflow.ellipsis,
-                style: tarefa.atrasada
-                    ? TextStyle(color: Theme.of(context).colorScheme.error)
-                    : null,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(2, 12, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      tarefa.titulo,
+                      style: textos.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        decoration: tarefa.concluida
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: tarefa.concluida ? cores.outline : null,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _Pilula(
+                          texto: provider.nomeCategoria(tarefa.categoriaId),
+                          cor: corCategoria,
+                        ),
+                        Text(
+                          tarefa.prioridade.label,
+                          style: textos.labelMedium?.copyWith(
+                            color: corPrioridade,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (tarefa.prazo != null)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (tarefa.atrasada) ...[
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 15,
+                                  color: cores.error,
+                                ),
+                                const SizedBox(width: 3),
+                              ],
+                              Text(
+                                formatarData(tarefa.prazo!),
+                                style: textos.labelMedium?.copyWith(
+                                  color: tarefa.atrasada
+                                      ? cores.error
+                                      : cores.onSurfaceVariant,
+                                  fontWeight:
+                                      tarefa.atrasada ? FontWeight.w600 : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Rótulo arredondado em cor suave — usado para a categoria.
+class _Pilula extends StatelessWidget {
+  final String texto;
+  final Color cor;
+
+  const _Pilula({required this.texto, required this.cor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: cor.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        texto,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cor,
+              fontWeight: FontWeight.w700,
+            ),
       ),
     );
   }

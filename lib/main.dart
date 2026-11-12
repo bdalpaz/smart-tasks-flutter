@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/tarefa_provider.dart';
 import 'screens/lista_tarefas_screen.dart';
+import 'theme.dart';
 
 void main() {
   runApp(
@@ -20,7 +21,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Tasks',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+      theme: temaClaro(),
+      darkTheme: temaEscuro(),
+      themeMode: ThemeMode.system,
       home: const ListaTarefasScreen(),
     );
   }

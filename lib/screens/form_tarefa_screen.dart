@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/categoria.dart';
 import '../models/tarefa.dart';
 import '../providers/tarefa_provider.dart';
+import '../theme.dart';
+import 'dialogo_categoria.dart';
 
 class FormTarefaScreen extends StatefulWidget {
   final Tarefa? tarefa;
@@ -15,7 +18,7 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titulo;
   late final TextEditingController _descricao;
-  late Categoria _categoria;
+  late String _categoriaId;
   late Prioridade _prioridade;
   DateTime? _prazo;
 
@@ -27,7 +30,8 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
     final t = widget.tarefa;
     _titulo = TextEditingController(text: t?.titulo ?? '');
     _descricao = TextEditingController(text: t?.descricao ?? '');
-    _categoria = t?.categoria ?? Categoria.pessoal;
+    _categoriaId = t?.categoriaId ??
+        context.read<TarefaProvider>().categorias.first.id;
     _prioridade = t?.prioridade ?? Prioridade.media;
     _prazo = t?.prazo;
   }
@@ -50,6 +54,35 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
     if (data != null) setState(() => _prazo = data);
   }
 
+  /// Cria uma categoria sem sair do formulário e já a deixa selecionada —
+  /// obrigar a ir até a tela de categorias no meio do cadastro seria pior.
+  Future<void> _criarCategoria() async {
+    final provider = context.read<TarefaProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final dados = await pedirDadosDeCategoria(
+      context,
+      titulo: 'Nova categoria',
+      rotuloBotao: 'Criar',
+      corInicial: Categoria.paleta.first,
+    );
+
+    if (dados == null) return;
+
+    final criada =
+        await provider.adicionarCategoria(dados.nome, cor: dados.cor);
+    if (!mounted) return;
+    if (criada == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Já existe uma categoria chamada "${dados.nome}"'),
+        ),
+      );
+      return;
+    }
+    setState(() => _categoriaId = criada.id);
+  }
+
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     final provider = context.read<TarefaProvider>();
@@ -58,7 +91,7 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
       id: t?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       titulo: _titulo.text.trim(),
       descricao: _descricao.text.trim(),
-      categoria: _categoria,
+      categoriaId: _categoriaId,
       prioridade: _prioridade,
       concluida: t?.concluida ?? false,
       criadaEm: t?.criadaEm,
@@ -119,12 +152,33 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
             const SizedBox(height: 24),
             const Text('Categoria'),
             const SizedBox(height: 8),
-            SegmentedButton<Categoria>(
-              segments: Categoria.values
-                  .map((c) => ButtonSegment(value: c, label: Text(c.label)))
-                  .toList(),
-              selected: {_categoria},
-              onSelectionChanged: (s) => setState(() => _categoria = s.first),
+            // Wrap no lugar de SegmentedButton: a quantidade de categorias
+            // agora é definida pelo usuário e precisa quebrar em várias linhas.
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in context.watch<TarefaProvider>().categorias)
+                  Builder(builder: (context) {
+                    final cor = corLegivel(context, Color(c.cor));
+                    final marcado = _categoriaId == c.id;
+                    return ChoiceChip(
+                      label: Text(c.nome),
+                      avatar: marcado
+                          ? null
+                          : CircleAvatar(backgroundColor: cor, radius: 6),
+                      selected: marcado,
+                      selectedColor: cor.withValues(alpha: 0.22),
+                      side: marcado ? BorderSide(color: cor) : null,
+                      onSelected: (_) => setState(() => _categoriaId = c.id),
+                    );
+                  }),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Nova'),
+                  onPressed: _criarCategoria,
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             const Text('Prioridade'),

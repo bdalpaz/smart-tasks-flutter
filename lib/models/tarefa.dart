@@ -1,14 +1,4 @@
-enum Categoria { trabalho, estudo, pessoal, outros }
 enum Prioridade { alta, media, baixa }
-
-extension CategoriaLabel on Categoria {
-  String get label => switch (this) {
-        Categoria.trabalho => 'Trabalho',
-        Categoria.estudo => 'Estudo',
-        Categoria.pessoal => 'Pessoal',
-        Categoria.outros => 'Outros',
-      };
-}
 
 extension PrioridadeLabel on Prioridade {
   String get label => switch (this) {
@@ -25,7 +15,10 @@ class Tarefa {
   final String id;
   String titulo;
   String descricao;
-  Categoria categoria;
+
+  /// Id da [Categoria], e não o objeto: renomear uma categoria não exige
+  /// reescrever nenhuma tarefa.
+  String categoriaId;
   Prioridade prioridade;
   bool concluida;
   final DateTime criadaEm;
@@ -35,7 +28,7 @@ class Tarefa {
     required this.id,
     required this.titulo,
     this.descricao = '',
-    this.categoria = Categoria.pessoal,
+    this.categoriaId = 'pessoal',
     this.prioridade = Prioridade.media,
     this.concluida = false,
     DateTime? criadaEm,
@@ -53,7 +46,9 @@ class Tarefa {
         'id': id,
         'titulo': titulo,
         'descricao': descricao,
-        'categoria': categoria.name,
+        // A chave segue sendo 'categoria' para que os dados gravados pela
+        // versão com enum continuem sendo lidos sem conversão.
+        'categoria': categoriaId,
         'prioridade': prioridade.name,
         'concluida': concluida,
         'criadaEm': criadaEm.toIso8601String(),
@@ -64,7 +59,7 @@ class Tarefa {
         id: j['id'],
         titulo: j['titulo'],
         descricao: j['descricao'] ?? '',
-        categoria: Categoria.values.byName(j['categoria']),
+        categoriaId: j['categoria'] ?? 'outros',
         prioridade: Prioridade.values.byName(j['prioridade']),
         concluida: j['concluida'] ?? false,
         criadaEm: DateTime.parse(j['criadaEm']),
