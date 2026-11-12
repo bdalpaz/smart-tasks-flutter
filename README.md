@@ -142,6 +142,7 @@ O arquivo é gerado em `build/app/outputs/flutter-apk/app-release.apk` (~49 MB).
 lib/
 ├── main.dart                        # ponto de entrada
 ├── theme.dart                       # cor-semente, temas claro/escuro e cores de prioridade
+├── layout_responsivo.dart           # quantas colunas cabem e quanto o conteúdo ocupa
 ├── models/
 │   ├── tarefa.dart                  # modelo, serialização JSON e regra de "atrasada"
 │   └── categoria.dart               # categoria como dado, com as padrão de fábrica
@@ -151,13 +152,15 @@ lib/
 │   ├── tarefa_repository.dart       # persistência das tarefas
 │   └── categoria_repository.dart    # persistência das categorias
 └── screens/
-    ├── lista_tarefas_screen.dart    # tela principal, filtros e itens da lista
+    ├── lista_tarefas_screen.dart    # tela principal, filtros e grade de cartões
     ├── form_tarefa_screen.dart      # cadastro e edição
-    └── categorias_screen.dart       # criar, renomear e excluir categorias
+    ├── categorias_screen.dart       # criar, renomear e excluir categorias
+    └── dialogo_categoria.dart       # diálogo de nome e cor, usado pelas duas telas
 
 test/
 ├── tarefa_test.dart                 # modelo: "atrasada", serialização e dados antigos
-└── tarefa_provider_test.dart        # ordenação, busca, filtros, categorias e persistência
+├── tarefa_provider_test.dart        # ordenação, busca, filtros, categorias e persistência
+└── layout_responsivo_test.dart      # invariantes do layout em qualquer largura
 ```
 
 A separação segue a ideia de camadas: a **tela** só desenha e dispara ações, o **provider**
@@ -181,9 +184,10 @@ causa e solução de cada um, está em [`docs/dificuldades.md`](docs/dificuldade
 
 ## Integrantes
 
-<!-- TODO: substituir pelos nomes do grupo -->
-
-- *(a preencher)*
+- Alice Dal Paz
+- Anthony Cazuni
+- Gabriel Ferri
+- João Vitor Canello
 
 ## Licença
 
