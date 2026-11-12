@@ -107,7 +107,7 @@ flutter run -d <id-android>  # celular ou emulador
 flutter test
 ```
 
-São 44 testes de unidade cobrindo as regras que não aparecem na interface:
+São 60 testes de unidade cobrindo as regras que não aparecem na interface:
 
 - **Ordenação inteligente** — cada critério da hierarquia é verificado isoladamente,
   inclusive o desempate (uma tarefa atrasada de prioridade baixa fica acima de uma de
@@ -128,9 +128,9 @@ São 44 testes de unidade cobrindo as regras que não aparecem na interface:
 flutter build apk --release
 ```
 
-O arquivo é gerado em `build/app/outputs/flutter-apk/app-release.apk` (~49 MB).
+O arquivo é gerado em `build/app/outputs/flutter-apk/app-release.apk` (~50 MB).
 
-**Download:** veja a [Release v1.0](https://github.com/bdalpaz/smart-tasks-flutter/releases/tag/v1.0).
+**Download:** veja a [Release v1.1](https://github.com/bdalpaz/smart-tasks-flutter/releases/tag/v1.1).
 
 > O APK é assinado com a chave de depuração padrão do Flutter, o que é suficiente para
 > instalar e testar no dispositivo. Para publicação em loja seria necessário configurar uma
