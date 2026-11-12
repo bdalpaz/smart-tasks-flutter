@@ -182,6 +182,19 @@ arquivo.
 O registro dos problemas de configuração e build encontrados durante o desenvolvimento, com
 causa e solução de cada um, está em [`docs/dificuldades.md`](docs/dificuldades.md).
 
+## Seminário
+
+Os slides da apresentação estão em
+[`docs/Smart-Tasks-Seminario.pptx`](docs/Smart-Tasks-Seminario.pptx), divididos nos quatro
+blocos pedidos pelo trabalho:
+
+| Bloco | Conteúdo | Apresenta |
+|---|---|---|
+| A | Introdução ao Flutter | Alice Dal Paz |
+| B | Processo de desenvolvimento | Anthony Cazuni |
+| C | Build e deploy | Gabriel Ferri |
+| D | Comparativo com React Native | João Vitor Canello |
+
 ## Integrantes
 
 - Alice Dal Paz
