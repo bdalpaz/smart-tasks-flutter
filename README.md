@@ -34,6 +34,10 @@ nada manualmente.
 - **Detalhes da tarefa** — tocar no cartão abre a tarefa por inteiro: descrição completa,
   categoria, prioridade e o acompanhamento do prazo ("Faltam 3 dias", "Vence hoje",
   "Atrasada há 2 dias"), com uma barra do tempo já decorrido desde a criação
+- **Anexos** — arquivos e fotos anexados pela tela de detalhes, com miniatura para imagens
+  e abertura no app padrão do sistema. O app guarda uma cópia, então o anexo continua
+  funcionando mesmo que o original seja apagado. Disponível no Android e no desktop; na
+  web, que não tem sistema de arquivos, a seção fica escondida
 - **Contador de pendentes** — exibido no título da tela, atualizado em tempo real
 - **Desfazer exclusão** — deslizar é fácil de disparar sem querer, então a tarefa excluída
   volta pelo botão "Desfazer" do aviso

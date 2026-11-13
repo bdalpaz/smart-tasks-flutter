@@ -1,3 +1,5 @@
+import 'anexo.dart';
+
 enum Prioridade { alta, media, baixa }
 
 extension PrioridadeLabel on Prioridade {
@@ -23,6 +25,7 @@ class Tarefa {
   bool concluida;
   final DateTime criadaEm;
   DateTime? prazo;
+  final List<Anexo> anexos;
 
   Tarefa({
     required this.id,
@@ -33,7 +36,9 @@ class Tarefa {
     this.concluida = false,
     DateTime? criadaEm,
     this.prazo,
-  }) : criadaEm = criadaEm ?? DateTime.now();
+    List<Anexo>? anexos,
+  })  : criadaEm = criadaEm ?? DateTime.now(),
+        anexos = anexos ?? [];
 
   bool get atrasada {
     if (concluida || prazo == null) return false;
@@ -92,6 +97,7 @@ class Tarefa {
         'concluida': concluida,
         'criadaEm': criadaEm.toIso8601String(),
         'prazo': prazo?.toIso8601String(),
+        'anexos': anexos.map((a) => a.toJson()).toList(),
       };
 
   factory Tarefa.fromJson(Map<String, dynamic> j) => Tarefa(
@@ -103,5 +109,9 @@ class Tarefa {
         concluida: j['concluida'] ?? false,
         criadaEm: DateTime.parse(j['criadaEm']),
         prazo: j['prazo'] != null ? DateTime.parse(j['prazo']) : null,
+        // Tarefas gravadas antes dos anexos não têm a chave.
+        anexos: (j['anexos'] as List? ?? [])
+            .map((a) => Anexo.fromJson(a as Map<String, dynamic>))
+            .toList(),
       );
 }

@@ -1,6 +1,9 @@
+import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter/foundation.dart';
+import '../data/anexo_storage.dart';
 import '../data/categoria_repository.dart';
 import '../data/tarefa_repository.dart';
+import '../models/anexo.dart';
 import '../models/categoria.dart';
 import '../models/tarefa.dart';
 
@@ -9,8 +12,17 @@ import '../models/tarefa.dart';
 enum ResultadoExclusaoCategoria { excluida, emUso, ultimaRestante }
 
 class TarefaProvider extends ChangeNotifier {
+  TarefaProvider({AnexoStorage? anexos})
+      : armazenamentoAnexos = anexos ?? AnexoStorage();
+
   final _repo = TarefaRepository();
   final _repoCategorias = CategoriaRepository();
+
+  /// Exposto para a tela montar os caminhos das miniaturas.
+  final AnexoStorage armazenamentoAnexos;
+
+  /// A web não tem sistema de arquivos para guardar as cópias.
+  static bool get anexosDisponiveis => !kIsWeb;
 
   List<Tarefa> _tarefas = [];
   List<Categoria> _categorias = [];
@@ -99,6 +111,18 @@ class TarefaProvider extends ChangeNotifier {
     _tarefas = await _repo.carregar();
     _carregando = false;
     notifyListeners();
+    if (anexosDisponiveis && !_repo.leituraFalhou) await _limparAnexosOrfaos();
+  }
+
+  Future<void> _limparAnexosOrfaos() async {
+    try {
+      await armazenamentoAnexos.limparOrfaos({
+        for (final t in _tarefas) t.id: {for (final a in t.anexos) a.id},
+      });
+    } catch (e) {
+      // Sobra de arquivos ocupa espaço, mas não justifica falhar a abertura.
+      debugPrint('Falha ao limpar anexos órfãos: $e');
+    }
   }
 
   Future<void> _persistir() async {
@@ -132,6 +156,48 @@ class TarefaProvider extends ChangeNotifier {
   Future<void> alternarConcluida(Tarefa t) async {
     t.concluida = !t.concluida;
     await _persistir();
+  }
+
+  // --- Anexos --------------------------------------------------------------
+
+  /// Copia os arquivos para a pasta do app. Devolve quantos falharam; os que
+  /// deram certo ficam anexados mesmo assim.
+  Future<int> anexar(String tarefaId, List<XFile> arquivos) async {
+    final tarefa = tarefaPor(tarefaId);
+    if (tarefa == null) return arquivos.length;
+    var falhas = 0;
+    for (final arquivo in arquivos) {
+      try {
+        tarefa.anexos.add(await armazenamentoAnexos.guardar(tarefaId, arquivo));
+      } catch (e) {
+        debugPrint('Falha ao anexar ${arquivo.name}: $e');
+        falhas++;
+      }
+    }
+    await _persistir();
+    return falhas;
+  }
+
+  Future<void> removerAnexo(String tarefaId, Anexo anexo) async {
+    tarefaPor(tarefaId)?.anexos.removeWhere((a) => a.id == anexo.id);
+    await _persistir();
+    try {
+      await armazenamentoAnexos.apagar(tarefaId, anexo);
+    } catch (e) {
+      // O arquivo que sobrar é recolhido na próxima abertura do app.
+      debugPrint('Falha ao apagar anexo: $e');
+    }
+  }
+
+  /// Apaga os arquivos de uma tarefa excluída. Chamado só quando o aviso de
+  /// "Desfazer" fecha: até lá a tarefa pode voltar, e os anexos com ela.
+  Future<void> descartarAnexosDeExcluida(String tarefaId) async {
+    if (!anexosDisponiveis || tarefaPor(tarefaId) != null) return;
+    try {
+      await armazenamentoAnexos.apagarDaTarefa(tarefaId);
+    } catch (e) {
+      debugPrint('Falha ao apagar anexos da tarefa: $e');
+    }
   }
 
   // --- Categorias ----------------------------------------------------------

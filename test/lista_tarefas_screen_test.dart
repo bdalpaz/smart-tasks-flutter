@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_tasks/main.dart';
+import 'package:smart_tasks/models/anexo.dart';
 import 'package:smart_tasks/models/tarefa.dart';
 import 'package:smart_tasks/providers/tarefa_provider.dart';
 
@@ -121,6 +122,29 @@ void main() {
 
       expect(find.text('Detalhes da tarefa'), findsOneWidget);
       expect(find.text('Novo'), findsOneWidget);
+    });
+
+    testWidgets('mostra os anexos e editar a tarefa não os perde',
+        (tester) async {
+      final provider = await abrirApp(
+        tester,
+        Tarefa(id: '1', titulo: 'Com anexo', anexos: [
+          Anexo(id: 'a', nome: 'contrato.pdf', tamanho: 2048),
+        ]),
+      );
+      await abrirDetalhes(tester, 'Com anexo');
+      expect(find.text('Anexos (1)'), findsOneWidget);
+      expect(find.text('contrato.pdf'), findsOneWidget);
+      expect(find.text('2,0 KB'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Editar'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'Renomeada');
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      expect(provider.tarefaPor('1')!.anexos.single.nome, 'contrato.pdf');
+      expect(find.text('contrato.pdf'), findsOneWidget);
     });
 
     testWidgets('concluir e reabrir pelos detalhes', (tester) async {

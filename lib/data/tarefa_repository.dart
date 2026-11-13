@@ -6,9 +6,14 @@ import '../models/tarefa.dart';
 class TarefaRepository {
   static const _chave = 'tarefas';
 
+  /// Se a última leitura descartou dados ilegíveis. Nesse caso a lista vazia
+  /// não reflete o que o usuário tinha, e nada deve ser limpo com base nela.
+  bool leituraFalhou = false;
+
   /// Nunca lança: dados ilegíveis resultam em lista vazia. Abrir o app sem as
   /// tarefas antigas é ruim, mas não abrir é pior.
   Future<List<Tarefa>> carregar() async {
+    leituraFalhou = false;
     try {
       final prefs = await SharedPreferences.getInstance();
       final json = prefs.getString(_chave);
@@ -21,6 +26,7 @@ class TarefaRepository {
       // JSON corrompido ou gravado por uma versão anterior do modelo — por
       // exemplo uma categoria que não existe mais faz `byName` lançar.
       debugPrint('Falha ao carregar tarefas: $e');
+      leituraFalhou = true;
       return [];
     }
   }

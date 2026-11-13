@@ -96,6 +96,8 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
       concluida: t?.concluida ?? false,
       criadaEm: t?.criadaEm,
       prazo: _prazo,
+      // O formulário não mexe nos anexos, mas a tarefa nova os substitui.
+      anexos: t?.anexos,
     );
     if (_editando) {
       await provider.atualizar(tarefa);

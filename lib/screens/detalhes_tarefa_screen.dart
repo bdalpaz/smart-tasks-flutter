@@ -1,5 +1,11 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
+import '../data/anexo_storage.dart';
+import '../models/anexo.dart';
 import '../models/tarefa.dart';
 import '../providers/tarefa_provider.dart';
 import '../theme.dart';
@@ -62,6 +68,10 @@ class DetalhesTarefaScreen extends StatelessWidget {
               _CartaoPrazo(tarefa: tarefa),
               const SizedBox(height: 12),
               _CartaoDescricao(tarefa: tarefa),
+              if (TarefaProvider.anexosDisponiveis) ...[
+                const SizedBox(height: 12),
+                _CartaoAnexos(tarefa: tarefa),
+              ],
               const SizedBox(height: 24),
               Wrap(
                 spacing: 12,
@@ -162,9 +172,14 @@ class _Secao extends StatelessWidget {
   final IconData icone;
   final String titulo;
   final Widget child;
+  final Widget? acao;
 
-  const _Secao(
-      {required this.icone, required this.titulo, required this.child});
+  const _Secao({
+    required this.icone,
+    required this.titulo,
+    required this.child,
+    this.acao,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -183,15 +198,18 @@ class _Secao extends StatelessWidget {
               children: [
                 Icon(icone, size: 18, color: cores.onSurfaceVariant),
                 const SizedBox(width: 8),
-                Text(
-                  titulo,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: cores.onSurfaceVariant,
-                      ),
+                Expanded(
+                  child: Text(
+                    titulo,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: cores.onSurfaceVariant,
+                        ),
+                  ),
                 ),
+                ?acao,
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: acao == null ? 12 : 4),
             child,
           ],
         ),
@@ -300,6 +318,194 @@ class _CartaoDescricao extends StatelessWidget {
           // Selecionável: no desktop e na web é comum querer copiar um
           // trecho, e a descrição é o texto mais longo da tarefa.
           : SelectableText(tarefa.descricao, style: textos.bodyLarge),
+    );
+  }
+}
+
+class _CartaoAnexos extends StatefulWidget {
+  final Tarefa tarefa;
+  const _CartaoAnexos({required this.tarefa});
+
+  @override
+  State<_CartaoAnexos> createState() => _CartaoAnexosState();
+}
+
+class _CartaoAnexosState extends State<_CartaoAnexos> {
+  /// A pasta é resolvida uma vez só; as miniaturas precisam do caminho pronto.
+  late final Future<Directory> _raiz =
+      context.read<TarefaProvider>().armazenamentoAnexos.raiz();
+  bool _anexando = false;
+
+  Tarefa get _tarefa => widget.tarefa;
+
+  Future<void> _anexar() async {
+    final provider = context.read<TarefaProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final arquivos = await openFiles();
+    if (arquivos.isEmpty || !mounted) return;
+
+    setState(() => _anexando = true);
+    final falhas = await provider.anexar(_tarefa.id, arquivos);
+    if (!mounted) return;
+    setState(() => _anexando = false);
+    if (falhas > 0) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(falhas == 1
+            ? 'Não foi possível anexar 1 arquivo'
+            : 'Não foi possível anexar $falhas arquivos'),
+      ));
+    }
+  }
+
+  Future<void> _abrir(Anexo anexo) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final caminho = await context
+        .read<TarefaProvider>()
+        .armazenamentoAnexos
+        .caminho(_tarefa.id, anexo);
+    final resultado = await OpenFilex.open(caminho);
+    if (resultado.type == ResultType.done) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(resultado.type == ResultType.noAppToOpen
+          ? 'Nenhum app instalado abre este tipo de arquivo'
+          : 'Não foi possível abrir "${anexo.nome}"'),
+    ));
+  }
+
+  Future<void> _remover(Anexo anexo) async {
+    final provider = context.read<TarefaProvider>();
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover anexo?'),
+        content: Text('"${anexo.nome}" será apagado do app.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado == true) await provider.removerAnexo(_tarefa.id, anexo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final anexos = _tarefa.anexos;
+    final cores = Theme.of(context).colorScheme;
+
+    return _Secao(
+      icone: Icons.attach_file,
+      titulo: anexos.isEmpty ? 'Anexos' : 'Anexos (${anexos.length})',
+      acao: _anexando
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : TextButton.icon(
+              onPressed: _anexar,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Anexar'),
+            ),
+      child: anexos.isEmpty
+          ? Text(
+              'Nenhum arquivo anexado',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: cores.onSurfaceVariant,
+                  ),
+            )
+          : FutureBuilder<Directory>(
+              future: _raiz,
+              builder: (context, raiz) => Column(
+                children: [
+                  for (final anexo in anexos)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: _Miniatura(
+                        anexo: anexo,
+                        caminho: raiz.data == null
+                            ? null
+                            : AnexoStorage.caminhoEm(
+                                raiz.data!, _tarefa.id, anexo),
+                      ),
+                      title: Text(
+                        anexo.nome,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(formatarTamanho(anexo.tamanho)),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Remover anexo',
+                        onPressed: () => _remover(anexo),
+                      ),
+                      onTap: () => _abrir(anexo),
+                    ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _Miniatura extends StatelessWidget {
+  final Anexo anexo;
+
+  /// `null` enquanto a pasta dos anexos não foi resolvida.
+  final String? caminho;
+
+  const _Miniatura({required this.anexo, required this.caminho});
+
+  static const _lado = 44.0;
+
+  IconData get _icone => switch (anexo.extensao) {
+        'pdf' => Icons.picture_as_pdf_outlined,
+        'doc' || 'docx' || 'odt' || 'txt' || 'md' => Icons.description_outlined,
+        'xls' || 'xlsx' || 'ods' || 'csv' => Icons.table_chart_outlined,
+        'zip' || 'rar' || '7z' => Icons.folder_zip_outlined,
+        'mp3' || 'wav' || 'ogg' || 'm4a' => Icons.audio_file_outlined,
+        'mp4' || 'mov' || 'mkv' || 'webm' => Icons.video_file_outlined,
+        _ when anexo.ehImagem => Icons.image_outlined,
+        _ => Icons.insert_drive_file_outlined,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final cores = Theme.of(context).colorScheme;
+    final icone = Container(
+      width: _lado,
+      height: _lado,
+      decoration: BoxDecoration(
+        color: cores.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(_icone, color: cores.onPrimaryContainer),
+    );
+    if (!anexo.ehImagem || caminho == null) return icone;
+
+    final escala = MediaQuery.devicePixelRatioOf(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.file(
+        File(caminho!),
+        width: _lado,
+        height: _lado,
+        fit: BoxFit.cover,
+        // Decodifica perto do tamanho da miniatura, não no da foto original.
+        // Com folga: no recorte "cover" o lado menor de uma foto em paisagem
+        // é ampliado, e decodificar no tamanho exato a deixaria borrada.
+        cacheWidth: (_lado * escala * 2).round(),
+        errorBuilder: (_, _, _) => icone,
+      ),
     );
   }
 }

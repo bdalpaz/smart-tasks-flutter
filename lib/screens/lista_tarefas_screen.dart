@@ -442,15 +442,19 @@ class _ItemTarefa extends StatelessWidget {
     void excluirComDesfazer(Tarefa tarefa) {
       provider.excluir(tarefa.id);
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('"${tarefa.titulo}" excluída'),
-          action: SnackBarAction(
-            label: 'Desfazer',
-            onPressed: () => provider.adicionar(tarefa),
-          ),
-        ),
-      );
+      messenger
+          .showSnackBar(
+            SnackBar(
+              content: Text('"${tarefa.titulo}" excluída'),
+              action: SnackBarAction(
+                label: 'Desfazer',
+                onPressed: () => provider.adicionar(tarefa),
+              ),
+            ),
+          )
+          .closed
+          // Os arquivos só podem sumir quando não há mais como desfazer.
+          .then((_) => provider.descartarAnexosDeExcluida(tarefa.id));
     }
 
     return Padding(
@@ -585,6 +589,27 @@ class _ConteudoItem extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        if (tarefa.anexos.isNotEmpty)
+                          Tooltip(
+                            message: '${tarefa.anexos.length} anexo'
+                                '${tarefa.anexos.length == 1 ? '' : 's'}',
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.attach_file,
+                                  size: 15,
+                                  color: cores.onSurfaceVariant,
+                                ),
+                                Text(
+                                  '${tarefa.anexos.length}',
+                                  style: textos.labelMedium?.copyWith(
+                                    color: cores.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                       ],
                     ),
