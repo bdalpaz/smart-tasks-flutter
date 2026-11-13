@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Rótulo arredondado em cor suave — usado para a categoria e a situação.
 class Pilula extends StatelessWidget {
   final String texto;
   final Color cor;

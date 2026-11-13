@@ -1,13 +1,7 @@
-/// Arquivo anexado a uma tarefa.
-///
-/// Guarda só os metadados. O arquivo é uma cópia feita na pasta do app (ver
-/// `AnexoStorage`), localizada a partir dos ids e do nome; o caminho absoluto
-/// não é gravado porque a pasta do app pode mudar entre instalações.
 class Anexo {
   final String id;
   final String nome;
 
-  /// Em bytes, medido na cópia.
   final int tamanho;
   final DateTime adicionadoEm;
 
@@ -42,7 +36,6 @@ class Anexo {
       );
 }
 
-/// "820 B", "14,2 KB", "3,5 MB".
 String formatarTamanho(int bytes) {
   if (bytes < 1024) return '$bytes B';
   const unidades = ['KB', 'MB', 'GB'];

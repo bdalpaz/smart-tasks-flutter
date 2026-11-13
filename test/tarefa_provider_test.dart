@@ -6,8 +6,6 @@ import 'package:smart_tasks/providers/tarefa_provider.dart';
 
 import 'tarefa_test.dart' show hoje;
 
-/// Atalho para montar tarefas nos testes sem repetir os campos irrelevantes.
-/// O `id` serve de nome, o que deixa as asserções de ordem legíveis.
 Tarefa tarefa(
   String id, {
   String titulo = 'Tarefa',
@@ -32,7 +30,6 @@ void main() {
 
   late TarefaProvider provider;
 
-  /// Ids na ordem em que a tela os exibiria.
   List<String> ordem() => provider.tarefas.map((t) => t.id).toList();
 
   setUp(() async {
@@ -154,7 +151,6 @@ void main() {
       provider.setBusca('prova');
       expect(ordem(), ['prova']);
 
-      // A mesma busca com um filtro conflitante não devolve nada.
       provider.setFiltroCategoria('trabalho');
       expect(provider.tarefas, isEmpty);
     });
@@ -210,7 +206,6 @@ void main() {
       );
 
       expect(provider.nomeCategoria('trabalho'), 'Serviço');
-      // O id gravado na tarefa é o mesmo: renomear não reescreve tarefa alguma.
       expect(provider.tarefas.single.categoriaId, 'trabalho');
     });
 
@@ -250,7 +245,6 @@ void main() {
 
     test('categorias gravadas sem cor ganham cores da paleta ao carregar',
         () async {
-      // Formato exato da versão anterior: sem a chave "cor".
       SharedPreferences.setMockInitialValues({
         'categorias': '[{"id":"trabalho","nome":"Trabalho"},'
             '{"id":"estudo","nome":"Estudo"}]'
@@ -394,7 +388,6 @@ void main() {
 
       expect(novo.tarefas, isEmpty);
       expect(novo.carregando, isFalse);
-      // Mesmo sem conseguir ler as tarefas, as categorias continuam de pé.
       expect(novo.categorias, hasLength(4));
     });
 

@@ -9,9 +9,6 @@ import 'package:smart_tasks/models/anexo.dart';
 import 'package:smart_tasks/models/tarefa.dart';
 import 'package:smart_tasks/providers/tarefa_provider.dart';
 
-/// Avança a transição do OpenContainer quadro a quadro: o erro que este teste
-/// protege aparecia em um único frame no meio da animação, e um
-/// `pumpAndSettle` direto poderia pulá-lo.
 Future<void> _percorrerTransicao(WidgetTester tester) async {
   for (var i = 0; i < 40; i++) {
     await tester.pump(const Duration(milliseconds: 16));
@@ -20,8 +17,6 @@ Future<void> _percorrerTransicao(WidgetTester tester) async {
 }
 
 void main() {
-  // Estreita (uma coluna) e larga (grade): o OpenContainer anima de posições
-  // diferentes em cada caso.
   for (final tamanho in [const Size(400, 800), const Size(1280, 800)]) {
     testWidgets(
         'abrir "Nova tarefa" e um cartão não gera erro na transição ($tamanho)',

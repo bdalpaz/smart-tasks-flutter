@@ -17,7 +17,6 @@ void main() {
   late Directory raiz;
   late AnexoStorage storage;
 
-  /// Um arquivo "do usuário", fora da pasta de anexos.
   Future<XFile> arquivo(String nome, [String conteudo = 'conteúdo']) async {
     final f = File(p.join(temp.path, 'origem', nome));
     await f.parent.create(recursive: true);
@@ -25,7 +24,6 @@ void main() {
     return XFile(f.path);
   }
 
-  /// Nomes das entradas diretas de uma pasta, para conferir o que sobrou.
   Future<Set<String>> conteudo(Directory dir) async => {
         if (await dir.exists())
           await for (final e in dir.list()) p.basename(e.path),

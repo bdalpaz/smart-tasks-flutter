@@ -2,15 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/categoria.dart';
 import '../theme.dart';
 
-/// Nome e cor escolhidos para uma categoria.
 typedef DadosCategoria = ({String nome, int cor});
 
-/// Pede nome e cor de uma categoria. Devolve `null` se o usuário cancelar.
-///
-/// O `TextEditingController` vive dentro de um `StatefulWidget` de propósito:
-/// descartá-lo logo após o `await showDialog(...)` quebra o app, porque a
-/// animação de saída do diálogo ainda reconstrói o campo e tenta se registrar
-/// num controller já descartado.
 Future<DadosCategoria?> pedirDadosDeCategoria(
   BuildContext context, {
   required String titulo,
@@ -74,9 +67,6 @@ class _DialogoCategoriaState extends State<_DialogoCategoria> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.titulo),
-      // maxWidth em vez de largura fixa: num celular estreito o AlertDialog
-      // reserva 40px de margem de cada lado, e uma largura fixa de 320
-      // estouraria o diálogo. Aqui ele encolhe junto com a tela.
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
         child: Form(

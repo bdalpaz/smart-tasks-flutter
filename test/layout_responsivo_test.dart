@@ -1,13 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_tasks/layout_responsivo.dart';
 
-/// Largura que cada cartão recebe de fato numa dada janela.
 double larguraPorCartao(double janela) {
   final colunas = colunasPara(janela);
   return larguraDoConteudo(janela, colunas) / colunas;
 }
 
-/// Quanto da janela fica sem uso dos dois lados.
 double sobra(double janela) =>
     janela - larguraDoConteudo(janela, colunasPara(janela));
 
@@ -51,9 +49,6 @@ void main() {
   });
 
   group('a janela é realmente aproveitada', () {
-    // Este é o defeito que motivou extrair a regra para cá: numa janela de
-    // 770 o app mostrava uma única coluna de 400, desperdiçando quase
-    // metade da largura.
     test('janela de 770 não deixa sobra', () {
       expect(sobra(770), 0);
     });

@@ -27,12 +27,6 @@ class _Limitado extends StatelessWidget {
       );
 }
 
-/// Contador de pendentes como etiqueta separada do título.
-///
-/// Antes fazia parte do texto do título, que então truncava em
-/// "Minhas Ta..." e escondia justamente o número. Mostra só o número: a
-/// caixa de título da AppBar pode ficar com pouca largura (as `actions`
-/// comem espaço), e um texto por extenso aqui estourava a linha.
 class _Contador extends StatelessWidget {
   final int quantidade;
   const _Contador({required this.quantidade});
@@ -85,8 +79,6 @@ class ListaTarefasScreen extends StatelessWidget {
             ),
             if (provider.pendentes > 0) ...[
               const SizedBox(width: 10),
-              // Flexible também no contador: se a caixa de título apertar, ele
-              // encolhe em vez de empurrar a linha para fora.
               Flexible(child: _Contador(quantidade: provider.pendentes)),
             ],
           ],
@@ -102,8 +94,6 @@ class ListaTarefasScreen extends StatelessWidget {
           ),
         ],
         bottom: PreferredSize(
-          // A altura acompanha a escala de texto do sistema: com fonte grande
-          // por acessibilidade, uma altura fixa de 62 estouraria o campo.
           preferredSize: Size.fromHeight(
             62 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
           ),
@@ -139,14 +129,8 @@ class ListaTarefasScreen extends StatelessWidget {
         closedShape: const StadiumBorder(),
         closedColor: cores.primaryContainer,
         openColor: cores.surface,
-        // O toque é tratado pelo InkWell abaixo. Com o padrão (true), o
-        // OpenContainer põe o próprio detector de gestos por cima e disputa o
-        // toque com os controles internos — no cartão, com o checkbox.
         tappable: false,
         openBuilder: (_, _) => const FormTarefaScreen(),
-        // Material transparente: durante a transição o OpenContainer reconstrói
-        // este conteúdo fora do lugar original, e sem um Material próprio o
-        // InkWell não acha ancestral — erro vermelho por um frame ao abrir.
         closedBuilder: (_, abrir) => Material(
           type: MaterialType.transparency,
           child: InkWell(
@@ -176,11 +160,6 @@ class ListaTarefasScreen extends StatelessWidget {
   }
 }
 
-/// Campo de busca com controller próprio.
-///
-/// Precisa ser Stateful: sem um controller, limpar a busca pelo provider (o
-/// botão "Limpar filtros") zerava o filtro mas deixava o texto antigo visível
-/// na tela — e não havia como oferecer um botão de limpar no próprio campo.
 class _CampoBusca extends StatefulWidget {
   const _CampoBusca();
 
@@ -199,9 +178,6 @@ class _CampoBuscaState extends State<_CampoBusca> {
     _provider.addListener(_sincronizar);
   }
 
-  /// Reflete no campo qualquer mudança de busca vinda de fora. Roda fora do
-  /// build de propósito: mexer no controller durante o build dispara
-  /// "setState during build".
   void _sincronizar() {
     final busca = _provider.busca;
     if (_controller.text == busca) return;
@@ -251,8 +227,6 @@ class _CampoBuscaState extends State<_CampoBusca> {
 }
 
 class _EstadoVazio extends StatelessWidget {
-  /// Diferencia "ainda não há tarefas" de "os filtros não acharam nada" — são
-  /// situações distintas e pedem saídas distintas.
   final bool filtrando;
   const _EstadoVazio({required this.filtrando});
 
@@ -375,12 +349,6 @@ class _SeparadorFiltros extends StatelessWidget {
       );
 }
 
-/// As tarefas em uma ou mais colunas, conforme a largura disponível.
-///
-/// É um ListView de linhas, e não um GridView: o GridView pediria altura fixa
-/// por célula, mas o título de uma tarefa pode ocupar uma ou duas linhas. Desta
-/// forma a virtualização do ListView é preservada e o IntrinsicHeight iguala a
-/// altura dos cartões que ficam lado a lado.
 class _Grade extends StatelessWidget {
   final List<Tarefa> tarefas;
   final int colunas;
@@ -391,7 +359,6 @@ class _Grade extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Caminho do celular: uma coluna, sem o custo do IntrinsicHeight extra.
     if (colunas == 1) {
       return ListView.builder(
         padding: _recheio,
@@ -413,8 +380,6 @@ class _Grade extends StatelessWidget {
             children: [
               for (var i = 0; i < colunas; i++)
                 Expanded(
-                  // A última linha pode vir incompleta; o espaço vazio mantém
-                  // as colunas alinhadas em vez de esticar o cartão sozinho.
                   child: inicio + i < tarefas.length
                       ? _ItemTarefa(tarefa: tarefas[inicio + i])
                       : const SizedBox.shrink(),
@@ -437,8 +402,6 @@ class _ItemTarefa extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final cores = Theme.of(context).colorScheme;
 
-    // Excluir é fácil de disparar sem querer, então precisa de volta. A tarefa
-    // volta com o mesmo id e a ordenação a recoloca no lugar.
     void excluirComDesfazer(Tarefa tarefa) {
       provider.excluir(tarefa.id);
       messenger.hideCurrentSnackBar();
@@ -453,7 +416,6 @@ class _ItemTarefa extends StatelessWidget {
             ),
           )
           .closed
-          // Os arquivos só podem sumir quando não há mais como desfazer.
           .then((_) => provider.descartarAnexosDeExcluida(tarefa.id));
     }
 
@@ -472,8 +434,6 @@ class _ItemTarefa extends StatelessWidget {
           child: Icon(Icons.delete_outline, color: cores.onErrorContainer),
         ),
         onDismissed: (_) => excluirComDesfazer(tarefa),
-        // O próprio cartão vira a tela de detalhes: o OpenContainer é o cartão,
-        // em vez de embrulhar um Card, para não empilhar duas superfícies.
         child: OpenContainer<String>(
           transitionType: ContainerTransitionType.fadeThrough,
           transitionDuration: _duracaoTransicao,
@@ -485,14 +445,11 @@ class _ItemTarefa extends StatelessWidget {
             borderRadius: BorderRadius.circular(_raioCartao),
           ),
           openBuilder: (_, _) => DetalhesTarefaScreen(tarefaId: tarefa.id),
-          // Excluir pelos detalhes passa pelo mesmo caminho do deslize, já com
-          // a transição de volta concluída.
           onClosed: (idExcluir) {
             final alvo =
                 idExcluir == null ? null : provider.tarefaPor(idExcluir);
             if (alvo != null) excluirComDesfazer(alvo);
           },
-          // Material transparente pelo mesmo motivo do botão "Nova tarefa".
           closedBuilder: (_, abrir) => Material(
             type: MaterialType.transparency,
             child: _ConteudoItem(tarefa: tarefa, aoTocar: abrir),
@@ -526,7 +483,6 @@ class _ConteudoItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Faixa de prioridade colada na borda do cartão.
             Container(width: 5, color: corPrioridade),
             Checkbox(
               value: tarefa.concluida,

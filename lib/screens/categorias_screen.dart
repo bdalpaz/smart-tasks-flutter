@@ -69,7 +69,6 @@ class _ItemCategoria extends StatelessWidget {
   }
 }
 
-/// Dialogo de criação (sem [categoria]) ou edição (com [categoria]).
 Future<void> _abrirDialogo(BuildContext context, {Categoria? categoria}) async {
   final provider = context.read<TarefaProvider>();
   final messenger = ScaffoldMessenger.of(context);

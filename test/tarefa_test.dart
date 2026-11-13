@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_tasks/models/tarefa.dart';
 
-/// Meia-noite de hoje, que é a referência usada por [Tarefa.atrasada].
 DateTime hoje() {
   final agora = DateTime.now();
   return DateTime(agora.year, agora.month, agora.day);
@@ -71,8 +70,6 @@ void main() {
 
   group('compatibilidade com dados antigos', () {
     test('tarefa gravada pela versão com enum continua sendo lida', () {
-      // Exatamente o formato que a versão anterior gravava: a categoria era
-      // `Categoria.trabalho.name`, que hoje é o id da categoria padrão.
       final antiga = Tarefa.fromJson({
         'id': '1',
         'titulo': 'Tarefa antiga',
@@ -113,7 +110,6 @@ void main() {
   });
 
   group('Acompanhamento do prazo', () {
-    // Referência fixa no meio da tarde, para provar que a hora não conta.
     final agora = DateTime(2026, 3, 10, 15, 30);
     Tarefa comPrazo(DateTime? prazo, {bool concluida = false}) => Tarefa(
           id: '1',
@@ -162,11 +158,9 @@ void main() {
     });
 
     test('progresso vai da criação até o fim do dia do prazo', () {
-      // Criada em 01/03 às 9h, prazo 10/03: termina em 11/03 à meia-noite.
       final t = comPrazo(DateTime(2026, 3, 10));
       expect(t.progressoPrazo(DateTime(2026, 3, 1, 9)), 0);
       expect(t.progressoPrazo(DateTime(2026, 3, 11)), 1);
-      // 222,5 h decorridas de 231 h.
       expect(t.progressoPrazo(agora), closeTo(0.963, 0.005));
     });
 

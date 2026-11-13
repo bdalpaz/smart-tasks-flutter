@@ -7,8 +7,6 @@ import '../models/anexo.dart';
 import '../models/categoria.dart';
 import '../models/tarefa.dart';
 
-/// Resultado de uma tentativa de excluir categoria. Serve para a tela explicar
-/// ao usuário *por que* a exclusão não aconteceu.
 enum ResultadoExclusaoCategoria { excluida, emUso, ultimaRestante }
 
 class TarefaProvider extends ChangeNotifier {
@@ -18,10 +16,8 @@ class TarefaProvider extends ChangeNotifier {
   final _repo = TarefaRepository();
   final _repoCategorias = CategoriaRepository();
 
-  /// Exposto para a tela montar os caminhos das miniaturas.
   final AnexoStorage armazenamentoAnexos;
 
-  /// A web não tem sistema de arquivos para guardar as cópias.
   static bool get anexosDisponiveis => !kIsWeb;
 
   List<Tarefa> _tarefas = [];
@@ -33,16 +29,12 @@ class TarefaProvider extends ChangeNotifier {
   Prioridade? filtroPrioridade;
   bool? filtroConcluida;
 
-  /// Verdadeiro até a primeira leitura do disco terminar. Sem isso a tela
-  /// mostraria "nenhuma tarefa" por um instante antes dos dados chegarem.
   bool get carregando => _carregando;
 
   List<Categoria> get categorias => List.unmodifiable(_categorias);
 
   int get pendentes => _tarefas.where((t) => !t.concluida).length;
 
-  /// Total sem filtro algum. A tela usa para distinguir "ainda não há tarefas"
-  /// de "os filtros atuais não acharam nada".
   int get total => _tarefas.length;
 
   bool get filtrando =>
@@ -63,8 +55,6 @@ class TarefaProvider extends ChangeNotifier {
 
   int corCategoria(String id) => categoriaPor(id)?.cor ?? Categoria.corPadrao;
 
-  /// Busca na lista completa, sem filtros: a tela de detalhes não pode perder
-  /// a tarefa só porque ela deixou de casar com a busca atual.
   Tarefa? tarefaPor(String id) {
     for (final t in _tarefas) {
       if (t.id == id) return t;
@@ -92,7 +82,6 @@ class TarefaProvider extends ChangeNotifier {
       return true;
     }).toList();
 
-    // Ordenação inteligente: pendentes > atrasadas > prioridade > prazo mais próximo
     lista.sort((a, b) {
       if (a.concluida != b.concluida) return a.concluida ? 1 : -1;
       if (a.atrasada != b.atrasada) return a.atrasada ? -1 : 1;
@@ -120,7 +109,6 @@ class TarefaProvider extends ChangeNotifier {
         for (final t in _tarefas) t.id: {for (final a in t.anexos) a.id},
       });
     } catch (e) {
-      // Sobra de arquivos ocupa espaço, mas não justifica falhar a abertura.
       debugPrint('Falha ao limpar anexos órfãos: $e');
     }
   }
@@ -134,8 +122,6 @@ class TarefaProvider extends ChangeNotifier {
     notifyListeners();
     await _repoCategorias.salvar(_categorias);
   }
-
-  // --- Tarefas -------------------------------------------------------------
 
   Future<void> adicionar(Tarefa t) async {
     _tarefas.add(t);
@@ -158,10 +144,6 @@ class TarefaProvider extends ChangeNotifier {
     await _persistir();
   }
 
-  // --- Anexos --------------------------------------------------------------
-
-  /// Copia os arquivos para a pasta do app. Devolve quantos falharam; os que
-  /// deram certo ficam anexados mesmo assim.
   Future<int> anexar(String tarefaId, List<XFile> arquivos) async {
     final tarefa = tarefaPor(tarefaId);
     if (tarefa == null) return arquivos.length;
@@ -184,13 +166,10 @@ class TarefaProvider extends ChangeNotifier {
     try {
       await armazenamentoAnexos.apagar(tarefaId, anexo);
     } catch (e) {
-      // O arquivo que sobrar é recolhido na próxima abertura do app.
       debugPrint('Falha ao apagar anexo: $e');
     }
   }
 
-  /// Apaga os arquivos de uma tarefa excluída. Chamado só quando o aviso de
-  /// "Desfazer" fecha: até lá a tarefa pode voltar, e os anexos com ela.
   Future<void> descartarAnexosDeExcluida(String tarefaId) async {
     if (!anexosDisponiveis || tarefaPor(tarefaId) != null) return;
     try {
@@ -199,8 +178,6 @@ class TarefaProvider extends ChangeNotifier {
       debugPrint('Falha ao apagar anexos da tarefa: $e');
     }
   }
-
-  // --- Categorias ----------------------------------------------------------
 
   bool categoriaEmUso(String id) => _tarefas.any((t) => t.categoriaId == id);
 
@@ -213,8 +190,6 @@ class TarefaProvider extends ChangeNotifier {
         .any((c) => c.id != ignorandoId && c.nome.toLowerCase() == alvo);
   }
 
-  /// Primeira cor da paleta ainda não usada, para que duas categorias criadas
-  /// em sequência não saiam iguais.
   int _proximaCorLivre() {
     final usadas = _categorias.map((c) => c.cor).toSet();
     for (final cor in Categoria.paleta) {
@@ -223,7 +198,6 @@ class TarefaProvider extends ChangeNotifier {
     return Categoria.paleta[_categorias.length % Categoria.paleta.length];
   }
 
-  /// Devolve a categoria criada, ou `null` se o nome for vazio ou repetido.
   Future<Categoria?> adicionarCategoria(String nome, {int? cor}) async {
     final limpo = nome.trim();
     if (limpo.isEmpty || _nomeJaExiste(limpo)) return null;
@@ -238,7 +212,6 @@ class TarefaProvider extends ChangeNotifier {
     return categoria;
   }
 
-  /// Falso se o nome for vazio ou já pertencer a outra categoria.
   Future<bool> atualizarCategoria(String id,
       {required String nome, int? cor}) async {
     final limpo = nome.trim();
@@ -253,8 +226,6 @@ class TarefaProvider extends ChangeNotifier {
     return true;
   }
 
-  /// Uma categoria com tarefas não pode ser excluída: apagá-la deixaria essas
-  /// tarefas órfãs. A última também não, porque toda tarefa precisa de uma.
   Future<ResultadoExclusaoCategoria> excluirCategoria(String id) async {
     if (categoriaEmUso(id)) return ResultadoExclusaoCategoria.emUso;
     if (_categorias.length <= 1) {
@@ -266,8 +237,6 @@ class TarefaProvider extends ChangeNotifier {
     await _persistirCategorias();
     return ResultadoExclusaoCategoria.excluida;
   }
-
-  // --- Busca e filtros -----------------------------------------------------
 
   void setBusca(String valor) {
     busca = valor;

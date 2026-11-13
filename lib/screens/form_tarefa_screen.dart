@@ -54,8 +54,6 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
     if (data != null) setState(() => _prazo = data);
   }
 
-  /// Cria uma categoria sem sair do formulário e já a deixa selecionada —
-  /// obrigar a ir até a tela de categorias no meio do cadastro seria pior.
   Future<void> _criarCategoria() async {
     final provider = context.read<TarefaProvider>();
     final messenger = ScaffoldMessenger.of(context);
@@ -96,7 +94,6 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
       concluida: t?.concluida ?? false,
       criadaEm: t?.criadaEm,
       prazo: _prazo,
-      // O formulário não mexe nos anexos, mas a tarefa nova os substitui.
       anexos: t?.anexos,
     );
     if (_editando) {
@@ -111,8 +108,6 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Sem botão de excluir: a edição é aberta pelos detalhes, que excluem
-      // com "Desfazer". Excluir daqui deixaria os detalhes sem tarefa.
       appBar: AppBar(
         title: Text(_editando ? 'Editar tarefa' : 'Nova tarefa'),
       ),
@@ -142,8 +137,6 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
             const SizedBox(height: 24),
             const Text('Categoria'),
             const SizedBox(height: 8),
-            // Wrap no lugar de SegmentedButton: a quantidade de categorias
-            // agora é definida pelo usuário e precisa quebrar em várias linhas.
             Wrap(
               spacing: 8,
               runSpacing: 8,

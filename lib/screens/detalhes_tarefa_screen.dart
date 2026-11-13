@@ -12,16 +12,7 @@ import '../theme.dart';
 import '../widgets/pilula.dart';
 import 'form_tarefa_screen.dart';
 
-/// Mostra uma tarefa por inteiro, com o acompanhamento do prazo.
-///
-/// Ao excluir, a tela fecha devolvendo o id da tarefa e quem a abriu faz a
-/// exclusão. Excluir aqui dentro faria o cartão de destino da transição de
-/// volta sumir no meio dela, e a lista já tem o aviso com "Desfazer" pronto.
-/// O id, e não um simples "excluir": a lista reaproveita os cartões por
-/// posição, e editar a tarefa pode tê-la movido para outro lugar.
 class DetalhesTarefaScreen extends StatelessWidget {
-  /// O id, e não a tarefa: salvar a edição troca o objeto no provider, e a
-  /// tela precisa mostrar a versão nova ao voltar do formulário.
   final String tarefaId;
 
   const DetalhesTarefaScreen({super.key, required this.tarefaId});
@@ -33,7 +24,6 @@ class DetalhesTarefaScreen extends StatelessWidget {
     final provider = context.watch<TarefaProvider>();
     final tarefa = provider.tarefaPor(tarefaId);
 
-    // Só acontece se a tarefa sumir por outro caminho com a tela aberta.
     if (tarefa == null) {
       return Scaffold(
         appBar: AppBar(),
@@ -315,8 +305,6 @@ class _CartaoDescricao extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             )
-          // Selecionável: no desktop e na web é comum querer copiar um
-          // trecho, e a descrição é o texto mais longo da tarefa.
           : SelectableText(tarefa.descricao, style: textos.bodyLarge),
     );
   }
@@ -331,7 +319,6 @@ class _CartaoAnexos extends StatefulWidget {
 }
 
 class _CartaoAnexosState extends State<_CartaoAnexos> {
-  /// A pasta é resolvida uma vez só; as miniaturas precisam do caminho pronto.
   late final Future<Directory> _raiz =
       context.read<TarefaProvider>().armazenamentoAnexos.raiz();
   bool _anexando = false;
@@ -460,7 +447,6 @@ class _CartaoAnexosState extends State<_CartaoAnexos> {
 class _Miniatura extends StatelessWidget {
   final Anexo anexo;
 
-  /// `null` enquanto a pasta dos anexos não foi resolvida.
   final String? caminho;
 
   const _Miniatura({required this.anexo, required this.caminho});
@@ -500,9 +486,6 @@ class _Miniatura extends StatelessWidget {
         width: _lado,
         height: _lado,
         fit: BoxFit.cover,
-        // Decodifica perto do tamanho da miniatura, não no da foto original.
-        // Com folga: no recorte "cover" o lado menor de uma foto em paisagem
-        // é ampliado, e decodificar no tamanho exato a deixaria borrada.
         cacheWidth: (_lado * escala * 2).round(),
         errorBuilder: (_, _, _) => icone,
       ),

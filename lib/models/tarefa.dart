@@ -18,8 +18,6 @@ class Tarefa {
   String titulo;
   String descricao;
 
-  /// Id da [Categoria], e não o objeto: renomear uma categoria não exige
-  /// reescrever nenhuma tarefa.
   String categoriaId;
   Prioridade prioridade;
   bool concluida;
@@ -47,9 +45,6 @@ class Tarefa {
     return prazo!.isBefore(hoje);
   }
 
-  /// Dias de calendário entre hoje e o prazo: 0 vence hoje, negativo já venceu.
-  /// `null` sem prazo. Conta pela data, não pelas horas, para concordar com
-  /// [atrasada]; e em UTC, para que o horário de verão não tire um dia.
   int? diasAtePrazo([DateTime? agora]) {
     if (prazo == null) return null;
     final h = agora ?? DateTime.now();
@@ -59,7 +54,6 @@ class Tarefa {
         .inDays;
   }
 
-  /// Texto curto da situação do prazo, como "Faltam 3 dias".
   String? descricaoPrazo([DateTime? agora]) {
     final dias = diasAtePrazo(agora);
     if (dias == null) return null;
@@ -73,15 +67,12 @@ class Tarefa {
     };
   }
 
-  /// Fração do tempo já consumido, da criação até o fim do dia do prazo
-  /// (0 a 1). O dia do prazo conta como disponível, assim como em [atrasada].
   double? progressoPrazo([DateTime? agora]) {
     if (prazo == null) return null;
     final h = agora ?? DateTime.now();
     final p = prazo!;
     final fim = DateTime(p.year, p.month, p.day + 1);
     final total = fim.difference(criadaEm).inMinutes;
-    // Prazo anterior à criação (data retroativa): já não há tempo algum.
     if (total <= 0) return 1;
     return (h.difference(criadaEm).inMinutes / total).clamp(0.0, 1.0);
   }
@@ -90,8 +81,6 @@ class Tarefa {
         'id': id,
         'titulo': titulo,
         'descricao': descricao,
-        // A chave segue sendo 'categoria' para que os dados gravados pela
-        // versão com enum continuem sendo lidos sem conversão.
         'categoria': categoriaId,
         'prioridade': prioridade.name,
         'concluida': concluida,
@@ -109,7 +98,6 @@ class Tarefa {
         concluida: j['concluida'] ?? false,
         criadaEm: DateTime.parse(j['criadaEm']),
         prazo: j['prazo'] != null ? DateTime.parse(j['prazo']) : null,
-        // Tarefas gravadas antes dos anexos não têm a chave.
         anexos: (j['anexos'] as List? ?? [])
             .map((a) => Anexo.fromJson(a as Map<String, dynamic>))
             .toList(),
