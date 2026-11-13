@@ -11,8 +11,8 @@ nada manualmente.
 
 ### Obrigatórias
 
-- **Criar, editar e excluir tarefas** — formulário com validação de título; edição ao tocar
-  na tarefa; exclusão por deslize lateral ou pelo botão dentro da edição
+- **Criar, editar e excluir tarefas** — formulário com validação de título; edição pela
+  tela de detalhes; exclusão por deslize lateral ou pelo botão nos detalhes
 - **Categorias** — Trabalho, Estudo, Pessoal e Outros vêm prontas, mas são apenas o ponto
   de partida: o usuário cria, renomeia e exclui as próprias categorias
 - **Prioridades** — Alta, Média e Baixa, com indicador colorido em cada item
@@ -31,6 +31,9 @@ nada manualmente.
   4. Prazo mais próximo primeiro
 
 - **Destaque de tarefas atrasadas** — ícone de alerta e texto em vermelho para prazos vencidos
+- **Detalhes da tarefa** — tocar no cartão abre a tarefa por inteiro: descrição completa,
+  categoria, prioridade e o acompanhamento do prazo ("Faltam 3 dias", "Vence hoje",
+  "Atrasada há 2 dias"), com uma barra do tempo já decorrido desde a criação
 - **Contador de pendentes** — exibido no título da tela, atualizado em tempo real
 - **Desfazer exclusão** — deslizar é fácil de disparar sem querer, então a tarefa excluída
   volta pelo botão "Desfazer" do aviso

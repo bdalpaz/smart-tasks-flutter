@@ -106,25 +106,13 @@ class _FormTarefaScreenState extends State<FormTarefaScreen> {
     Navigator.pop(context);
   }
 
-  Future<void> _excluir() async {
-    await context.read<TarefaProvider>().excluir(widget.tarefa!.id);
-    if (!mounted) return;
-    Navigator.pop(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Sem botão de excluir: a edição é aberta pelos detalhes, que excluem
+      // com "Desfazer". Excluir daqui deixaria os detalhes sem tarefa.
       appBar: AppBar(
         title: Text(_editando ? 'Editar tarefa' : 'Nova tarefa'),
-        actions: [
-          if (_editando)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Excluir',
-              onPressed: _excluir,
-            ),
-        ],
       ),
       body: Form(
         key: _formKey,

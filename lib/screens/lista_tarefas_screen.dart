@@ -6,6 +6,8 @@ import '../models/tarefa.dart';
 import '../providers/tarefa_provider.dart';
 import '../theme.dart';
 import 'categorias_screen.dart';
+import '../widgets/pilula.dart';
+import 'detalhes_tarefa_screen.dart';
 import 'form_tarefa_screen.dart';
 
 const _duracaoTransicao = Duration(milliseconds: 420);
@@ -435,6 +437,22 @@ class _ItemTarefa extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final cores = Theme.of(context).colorScheme;
 
+    // Excluir é fácil de disparar sem querer, então precisa de volta. A tarefa
+    // volta com o mesmo id e a ordenação a recoloca no lugar.
+    void excluirComDesfazer(Tarefa tarefa) {
+      provider.excluir(tarefa.id);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('"${tarefa.titulo}" excluída'),
+          action: SnackBarAction(
+            label: 'Desfazer',
+            onPressed: () => provider.adicionar(tarefa),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Dismissible(
@@ -449,24 +467,10 @@ class _ItemTarefa extends StatelessWidget {
           padding: const EdgeInsets.only(right: 22),
           child: Icon(Icons.delete_outline, color: cores.onErrorContainer),
         ),
-        onDismissed: (_) {
-          provider.excluir(tarefa.id);
-          // Deslizar é fácil de disparar sem querer, então a exclusão precisa de
-          // volta. A tarefa volta com o mesmo id e a ordenação a recoloca no lugar.
-          messenger.hideCurrentSnackBar();
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('"${tarefa.titulo}" excluída'),
-              action: SnackBarAction(
-                label: 'Desfazer',
-                onPressed: () => provider.adicionar(tarefa),
-              ),
-            ),
-          );
-        },
-        // O próprio cartão vira a tela de edição: o OpenContainer é o cartão,
+        onDismissed: (_) => excluirComDesfazer(tarefa),
+        // O próprio cartão vira a tela de detalhes: o OpenContainer é o cartão,
         // em vez de embrulhar um Card, para não empilhar duas superfícies.
-        child: OpenContainer(
+        child: OpenContainer<String>(
           transitionType: ContainerTransitionType.fadeThrough,
           transitionDuration: _duracaoTransicao,
           closedElevation: 0,
@@ -476,7 +480,14 @@ class _ItemTarefa extends StatelessWidget {
           closedShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_raioCartao),
           ),
-          openBuilder: (_, _) => FormTarefaScreen(tarefa: tarefa),
+          openBuilder: (_, _) => DetalhesTarefaScreen(tarefaId: tarefa.id),
+          // Excluir pelos detalhes passa pelo mesmo caminho do deslize, já com
+          // a transição de volta concluída.
+          onClosed: (idExcluir) {
+            final alvo =
+                idExcluir == null ? null : provider.tarefaPor(idExcluir);
+            if (alvo != null) excluirComDesfazer(alvo);
+          },
           // Material transparente pelo mesmo motivo do botão "Nova tarefa".
           closedBuilder: (_, abrir) => Material(
             type: MaterialType.transparency,
@@ -540,7 +551,7 @@ class _ConteudoItem extends StatelessWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _Pilula(
+                        Pilula(
                           texto: provider.nomeCategoria(tarefa.categoriaId),
                           cor: corCategoria,
                         ),
@@ -583,32 +594,6 @@ class _ConteudoItem extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Rótulo arredondado em cor suave — usado para a categoria.
-class _Pilula extends StatelessWidget {
-  final String texto;
-  final Color cor;
-
-  const _Pilula({required this.texto, required this.cor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: cor.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        texto,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cor,
-              fontWeight: FontWeight.w700,
-            ),
       ),
     );
   }

@@ -111,4 +111,73 @@ void main() {
       expect(formatarData(DateTime(2026, 11, 3)), '03/11/2026');
     });
   });
+
+  group('Acompanhamento do prazo', () {
+    // Referência fixa no meio da tarde, para provar que a hora não conta.
+    final agora = DateTime(2026, 3, 10, 15, 30);
+    Tarefa comPrazo(DateTime? prazo, {bool concluida = false}) => Tarefa(
+          id: '1',
+          titulo: 'X',
+          prazo: prazo,
+          concluida: concluida,
+          criadaEm: DateTime(2026, 3, 1, 9),
+        );
+
+    test('conta dias de calendário, não horas', () {
+      expect(comPrazo(DateTime(2026, 3, 10)).diasAtePrazo(agora), 0);
+      expect(comPrazo(DateTime(2026, 3, 11)).diasAtePrazo(agora), 1);
+      expect(comPrazo(DateTime(2026, 3, 8)).diasAtePrazo(agora), -2);
+    });
+
+    test('atravessar a mudança de horário de verão não perde um dia', () {
+      final antes = DateTime(2026, 10, 30, 12);
+      expect(comPrazo(DateTime(2026, 11, 5)).diasAtePrazo(antes), 6);
+    });
+
+    test('descrição cobre hoje, amanhã, futuro e atraso', () {
+      String? d(DateTime prazo) => comPrazo(prazo).descricaoPrazo(agora);
+      expect(d(DateTime(2026, 3, 10)), 'Vence hoje');
+      expect(d(DateTime(2026, 3, 11)), 'Vence amanhã');
+      expect(d(DateTime(2026, 3, 15)), 'Faltam 5 dias');
+      expect(d(DateTime(2026, 3, 9)), 'Atrasada há 1 dia');
+      expect(d(DateTime(2026, 3, 4)), 'Atrasada há 6 dias');
+    });
+
+    test('descrição concorda com atrasada no dia do prazo', () {
+      final t = comPrazo(hoje());
+      expect(t.atrasada, isFalse);
+      expect(t.descricaoPrazo(), 'Vence hoje');
+    });
+
+    test('tarefa concluída mostra "Concluída" mesmo com prazo vencido', () {
+      final t = comPrazo(DateTime(2026, 3, 1), concluida: true);
+      expect(t.descricaoPrazo(agora), 'Concluída');
+    });
+
+    test('sem prazo não há descrição nem progresso', () {
+      final t = comPrazo(null);
+      expect(t.diasAtePrazo(agora), isNull);
+      expect(t.descricaoPrazo(agora), isNull);
+      expect(t.progressoPrazo(agora), isNull);
+    });
+
+    test('progresso vai da criação até o fim do dia do prazo', () {
+      // Criada em 01/03 às 9h, prazo 10/03: termina em 11/03 à meia-noite.
+      final t = comPrazo(DateTime(2026, 3, 10));
+      expect(t.progressoPrazo(DateTime(2026, 3, 1, 9)), 0);
+      expect(t.progressoPrazo(DateTime(2026, 3, 11)), 1);
+      // 222,5 h decorridas de 231 h.
+      expect(t.progressoPrazo(agora), closeTo(0.963, 0.005));
+    });
+
+    test('progresso fica entre 0 e 1 fora do intervalo', () {
+      final t = comPrazo(DateTime(2026, 3, 10));
+      expect(t.progressoPrazo(DateTime(2026, 2, 1)), 0);
+      expect(t.progressoPrazo(DateTime(2026, 4, 1)), 1);
+    });
+
+    test('prazo anterior à criação conta como tempo esgotado', () {
+      expect(comPrazo(DateTime(2026, 2, 20)).progressoPrazo(agora), 1);
+    });
+  });
 }

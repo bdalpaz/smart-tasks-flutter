@@ -51,6 +51,15 @@ class TarefaProvider extends ChangeNotifier {
 
   int corCategoria(String id) => categoriaPor(id)?.cor ?? Categoria.corPadrao;
 
+  /// Busca na lista completa, sem filtros: a tela de detalhes não pode perder
+  /// a tarefa só porque ela deixou de casar com a busca atual.
+  Tarefa? tarefaPor(String id) {
+    for (final t in _tarefas) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
   List<Tarefa> get tarefas {
     final termo = busca.toLowerCase();
     final lista = _tarefas.where((t) {

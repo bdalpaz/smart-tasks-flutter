@@ -42,6 +42,45 @@ class Tarefa {
     return prazo!.isBefore(hoje);
   }
 
+  /// Dias de calendário entre hoje e o prazo: 0 vence hoje, negativo já venceu.
+  /// `null` sem prazo. Conta pela data, não pelas horas, para concordar com
+  /// [atrasada]; e em UTC, para que o horário de verão não tire um dia.
+  int? diasAtePrazo([DateTime? agora]) {
+    if (prazo == null) return null;
+    final h = agora ?? DateTime.now();
+    final p = prazo!;
+    return DateTime.utc(p.year, p.month, p.day)
+        .difference(DateTime.utc(h.year, h.month, h.day))
+        .inDays;
+  }
+
+  /// Texto curto da situação do prazo, como "Faltam 3 dias".
+  String? descricaoPrazo([DateTime? agora]) {
+    final dias = diasAtePrazo(agora);
+    if (dias == null) return null;
+    if (concluida) return 'Concluída';
+    return switch (dias) {
+      0 => 'Vence hoje',
+      1 => 'Vence amanhã',
+      -1 => 'Atrasada há 1 dia',
+      < 0 => 'Atrasada há ${-dias} dias',
+      _ => 'Faltam $dias dias',
+    };
+  }
+
+  /// Fração do tempo já consumido, da criação até o fim do dia do prazo
+  /// (0 a 1). O dia do prazo conta como disponível, assim como em [atrasada].
+  double? progressoPrazo([DateTime? agora]) {
+    if (prazo == null) return null;
+    final h = agora ?? DateTime.now();
+    final p = prazo!;
+    final fim = DateTime(p.year, p.month, p.day + 1);
+    final total = fim.difference(criadaEm).inMinutes;
+    // Prazo anterior à criação (data retroativa): já não há tempo algum.
+    if (total <= 0) return 1;
+    return (h.difference(criadaEm).inMinutes / total).clamp(0.0, 1.0);
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'titulo': titulo,
